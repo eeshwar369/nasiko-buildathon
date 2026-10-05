@@ -1,0 +1,117 @@
+{
+  "baseline_tokens": 3241,
+  "bypassed": 9,
+  "case_count": 13,
+  "compact_format_pass": 4,
+  "compact_live_total": 4,
+  "compact_tokens": 3130,
+  "decoder_pass": 8,
+  "decoder_total": 8,
+  "failures": [
+    "dev-nested: live",
+    "dev-delimiters: native",
+    "dev-multiple: native"
+  ],
+  "live_pass": 12,
+  "live_total": 13,
+  "native_pass": 11,
+  "native_total": 13,
+  "per_case": [
+    {
+      "baseline_tokens": 224,
+      "compact_tokens": 224,
+      "compacted": false,
+      "id": "dev-weather"
+    },
+    {
+      "baseline_tokens": 229,
+      "compact_tokens": 229,
+      "compacted": false,
+      "id": "dev-forecast"
+    },
+    {
+      "baseline_tokens": 221,
+      "compact_tokens": 221,
+      "compacted": false,
+      "id": "dev-search"
+    },
+    {
+      "baseline_tokens": 213,
+      "compact_tokens": 213,
+      "compacted": false,
+      "id": "dev-document"
+    },
+    {
+      "baseline_tokens": 351,
+      "compact_tokens": 318,
+      "compacted": true,
+      "id": "dev-nested"
+    },
+    {
+      "baseline_tokens": 347,
+      "compact_tokens": 314,
+      "compacted": true,
+      "id": "dev-null"
+    },
+    {
+      "baseline_tokens": 232,
+      "compact_tokens": 232,
+      "compacted": false,
+      "id": "dev-delimiters"
+    },
+    {
+      "baseline_tokens": 227,
+      "compact_tokens": 227,
+      "compacted": false,
+      "id": "dev-unicode"
+    },
+    {
+      "baseline_tokens": 210,
+      "compact_tokens": 210,
+      "compacted": false,
+      "id": "dev-zero"
+    },
+    {
+      "baseline_tokens": 295,
+      "compact_tokens": 283,
+      "compacted": true,
+      "id": "dev-multiple"
+    },
+    {
+      "baseline_tokens": 224,
+      "compact_tokens": 224,
+      "compacted": false,
+      "id": "dev-no-call"
+    },
+    {
+      "baseline_tokens": 337,
+      "compact_tokens": 304,
+      "compacted": true,
+      "id": "dev-missing"
+    },
+    {
+      "baseline_tokens": 131,
+      "compact_tokens": 131,
+      "compacted": false,
+      "id": "dev-bypass"
+    }
+  ],
+  "provider_usage": {
+    "compact_path": {
+      "completion_tokens": 329,
+      "prompt_tokens": 2981,
+      "requests": 13,
+      "total_tokens": 3310
+    },
+    "native_path": {
+      "completion_tokens": 372,
+      "prompt_tokens": 3085,
+      "requests": 13,
+      "total_tokens": 3457
+    }
+  },
+  "roundtrip_pass": 13,
+  "scope": "Local development report; organizer private scorer is authoritative.",
+  "token_reduction": 0.03424868867633446,
+  "tokenizer": "tiktoken-rs=0.7.0/o200k_base"
+}

@@ -245,6 +245,7 @@ fn check_request(request: &ChatRequest) -> Result<(), Bypass> {
                 | "store"
                 | "metadata"
                 | "max_completion_tokens"
+                | "reasoning_effort"
                 | "service_tier"
         )
     }) {

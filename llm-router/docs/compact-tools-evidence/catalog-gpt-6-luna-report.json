@@ -1,0 +1,53 @@
+{
+  "baseline_tokens": 2013,
+  "bypassed": 0,
+  "case_count": 3,
+  "compact_format_pass": 3,
+  "compact_live_total": 3,
+  "compact_tokens": 1548,
+  "decoder_pass": 0,
+  "decoder_total": 0,
+  "failures": [],
+  "live_pass": 3,
+  "live_total": 3,
+  "native_pass": 3,
+  "native_total": 3,
+  "per_case": [
+    {
+      "baseline_tokens": 667,
+      "compact_tokens": 512,
+      "compacted": true,
+      "id": "catalog-dev-weather"
+    },
+    {
+      "baseline_tokens": 672,
+      "compact_tokens": 517,
+      "compacted": true,
+      "id": "catalog-dev-forecast"
+    },
+    {
+      "baseline_tokens": 674,
+      "compact_tokens": 519,
+      "compacted": true,
+      "id": "catalog-dev-search"
+    }
+  ],
+  "provider_usage": {
+    "compact_path": {
+      "completion_tokens": 73,
+      "prompt_tokens": 1344,
+      "requests": 3,
+      "total_tokens": 1417
+    },
+    "native_path": {
+      "completion_tokens": 73,
+      "prompt_tokens": 1452,
+      "requests": 3,
+      "total_tokens": 1525
+    }
+  },
+  "roundtrip_pass": 3,
+  "scope": "Local development report; organizer private scorer is authoritative.",
+  "token_reduction": 0.23099850968703428,
+  "tokenizer": "tiktoken-rs=0.7.0/o200k_base"
+}

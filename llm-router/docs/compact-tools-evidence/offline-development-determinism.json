@@ -1,0 +1,13 @@
+{
+  "identical": true,
+  "runs": [
+    {
+      "sha256": "9e450dec338f2372f3fb416ec83f4ca939daf6751101f66518440b6d2c79800a",
+      "elapsed_seconds": 6.566
+    },
+    {
+      "sha256": "9e450dec338f2372f3fb416ec83f4ca939daf6751101f66518440b6d2c79800a",
+      "elapsed_seconds": 5.344
+    }
+  ]
+}

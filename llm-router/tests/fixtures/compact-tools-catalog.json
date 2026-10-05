@@ -1,0 +1,307 @@
+{
+  "schema_version": "compact-tools-eval-v1",
+  "purpose": "Author-created catalog-size stress test: the first three generalization requests with all seven supported tools available. Reuses requests; not independent or held-out accuracy evidence.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "Get the current weather for a city. Does not provide forecasts.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "City name"
+            },
+            "units": {
+              "type": "string",
+              "enum": [
+                "celsius",
+                "fahrenheit"
+              ],
+              "description": "Temperature units"
+            }
+          },
+          "required": [
+            "city",
+            "units"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_forecast",
+        "description": "Get the weather forecast for a city on a specific future date.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "required": [
+            "city",
+            "date"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "search_docs",
+        "description": "Search documentation using a natural-language query. Returns matching document IDs.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "get_document",
+        "description": "Retrieve a document by its exact document ID. Use search_docs when no ID is known.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "document_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "document_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "create_shipment",
+        "description": "Create a shipment using the supplied address and item quantities. Never invent missing address fields.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "type": "object",
+              "properties": {
+                "city": {
+                  "type": "string"
+                },
+                "postal_code": {
+                  "type": "string"
+                },
+                "country": {
+                  "type": "string",
+                  "enum": [
+                    "IN",
+                    "US"
+                  ]
+                }
+              },
+              "required": [
+                "city",
+                "postal_code",
+                "country"
+              ],
+              "additionalProperties": false
+            },
+            "items": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "sku": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                },
+                "required": [
+                  "sku",
+                  "quantity"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "express": {
+              "type": "boolean"
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "address",
+            "items"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "save_note",
+        "description": "Store the user's exact text without editing it.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "Verbatim note text"
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          },
+          "required": [
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "set_volume",
+        "description": "Set playback volume to an integer percentage from 0 to 100.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "percent": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100
+            }
+          },
+          "required": [
+            "percent"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "catalog-dev-weather",
+      "tools": [
+        "get_weather",
+        "get_forecast",
+        "search_docs",
+        "get_document",
+        "create_shipment",
+        "save_note",
+        "set_volume"
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "content": "Get the current weather in Pune in celsius."
+        }
+      ],
+      "expected": [
+        {
+          "name": "get_weather",
+          "arguments": {
+            "city": "Pune",
+            "units": "celsius"
+          }
+        }
+      ]
+    },
+    {
+      "id": "catalog-dev-forecast",
+      "tools": [
+        "get_weather",
+        "get_forecast",
+        "search_docs",
+        "get_document",
+        "create_shipment",
+        "save_note",
+        "set_volume"
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "content": "Get the weather forecast for Chennai on 2026-10-09."
+        }
+      ],
+      "expected": [
+        {
+          "name": "get_forecast",
+          "arguments": {
+            "city": "Chennai",
+            "date": "2026-10-09"
+          }
+        }
+      ]
+    },
+    {
+      "id": "catalog-dev-search",
+      "tools": [
+        "get_weather",
+        "get_forecast",
+        "search_docs",
+        "get_document",
+        "create_shipment",
+        "save_note",
+        "set_volume"
+      ],
+      "messages": [
+        {
+          "role": "user",
+          "content": "Search documentation for the exact query 'retry configuration', returning at most 3 results."
+        }
+      ],
+      "expected": [
+        {
+          "name": "search_docs",
+          "arguments": {
+            "query": "retry configuration",
+            "limit": 3
+          }
+        }
+      ]
+    }
+  ],
+  "decoder_cases": []
+}

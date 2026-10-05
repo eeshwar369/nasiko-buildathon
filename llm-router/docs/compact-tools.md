@@ -2,6 +2,10 @@
 
 For the request-path diagram, local full-stack setup, and application usage, see [Compact tools: architecture and local setup](compact-tools-architecture.md).
 
+For raw live outputs, measured token/accuracy comparisons, and the running demo
+recording, see [measured evidence](compact-tools-evidence/README.md). The current
+protocol's results supersede the earlier 30% offline-only measurement.
+
 ## Architecture and scope
 
 Nasiko's server is the shared ingress for agent runtime and control-plane traffic.
@@ -132,6 +136,10 @@ default live request except temperature 0. The client uses a 60-second timeout
 and no retries or redirects. Network failures return nonzero with a sanitized
 category/status. Only opt-in live mode makes network requests.
 
+The router preserves `reasoning_effort` and `max_completion_tokens` while
+compacting; a reasoning setting must not silently turn an adherence test into
+native tool calling. Check `compacted` and `bypass_reason` in each output record.
+
 Live calls include the organizer-confirmed reference time: **2026-10-03, Asia/Kolkata**.
 `raw_output` and `live_calls` are written alongside per-case usage and latency.
 `LIVE_BASELINE=1` additionally invokes native tool calling on the same inputs and
@@ -142,6 +150,13 @@ The organizer confirmed that the reference date is October 3, 2026. This makes
 the published fixture and reference date; do not change expected answers to tune
 the evaluator.
 
+The live protocol explicitly tells models to retain the literal `call` marker,
+emit multiple calls in requested order, and omit unspecified optional fields.
+These instructions are included in every token measurement. The earlier terse
+protocol could make a model narrate an action or ask for optional values instead
+of producing a tool call. Correctness takes priority over minimizing the
+instruction string; compare both token reduction and live adherence.
+
 Local measurements, separate from the organizer's scorer:
 
 ```sh
@@ -150,6 +165,16 @@ MEASURE_TOKENS=1 EVAL_SET=/tmp/compact-tools-eval.json OUT=/tmp/out.jsonl \
 EVAL_SET=/tmp/compact-tools-eval.json OUT=/tmp/out.jsonl \
   cargo run --release -p nasiko-llm-router --example compact_tools_report
 ```
+
+The report includes per-case full-request token counts, compact format validity,
+semantic matches, and provider-reported usage when every live case supplies it.
+Serialized-body tokenizer estimates and provider usage are different measurements;
+neither implies a measured dollar saving. Bypassed requests are reported with
+zero reduction. Live and native usage stay separate, and missing usage is `null`.
+
+For a browser demonstration of the real codec and router seam, run
+`cargo run --release -p nasiko-llm-router --example compact_tools_demo` and open
+`http://127.0.0.1:8765`. See the [architecture/setup guide](compact-tools-architecture.md).
 
 The first command optionally prints aggregate token counts to stderr; its JSONL
 contract is unchanged. The separate report reconstructs a native baseline and

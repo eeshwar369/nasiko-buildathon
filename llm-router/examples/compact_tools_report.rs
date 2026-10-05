@@ -36,9 +36,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut roundtrip_pass = 0usize;
     let mut live_pass = 0usize;
     let mut live_total = 0usize;
+    let mut compact_live_total = 0usize;
+    let mut compact_format_pass = 0usize;
     let mut native_pass = 0usize;
     let mut native_total = 0usize;
     let mut failures = Vec::new();
+    let mut per_case = Vec::new();
     for case in cases {
         let id = case["id"].as_str().ok_or("case missing ID")?;
         let record = records.get(id).ok_or("case missing output")?;
@@ -62,13 +65,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "max_completion_tokens",
                 "reasoning_effort",
             ] {
-                baseline[key] = record["compact_request"][key].clone();
+                if let Some(value) = record["compact_request"].get(key) {
+                    baseline[key] = value.clone();
+                }
             }
             baseline["messages"].as_array_mut().ok_or("messages must be an array")?.insert(0,json!({"role":"system","content":"Today is 2026-10-03. Timezone: Asia/Kolkata."}));
         }
         let native_count = tokenizer.encode_ordinary(&baseline.to_string()).len();
         baseline_tokens += native_count;
-        compact_tokens += if record["compacted"] == false {
+        let compact_count = if record["compacted"] == false {
             bypassed += 1;
             native_count
         } else {
@@ -76,6 +81,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .encode_ordinary(&record["compact_request"].to_string())
                 .len()
         };
+        compact_tokens += compact_count;
+        per_case.push(json!({"id":id,"baseline_tokens":native_count,"compact_tokens":compact_count,"compacted":record["compacted"]}));
         if calls_match(&record["roundtrip_calls"], case) {
             roundtrip_pass += 1;
         } else {
@@ -83,6 +90,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
         if let Some(live) = record.get("live_calls") {
             live_total += 1;
+            if record["compacted"] == true {
+                compact_live_total += 1;
+                if live.get("calls").is_some_and(Value::is_array) {
+                    compact_format_pass += 1;
+                }
+            }
             if calls_match(&live["calls"], case) {
                 live_pass += 1;
             } else {
@@ -124,10 +137,28 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "bypassed":bypassed,"roundtrip_pass":roundtrip_pass,
             "decoder_pass":decoder_pass,"decoder_total":decoder_cases.len(),
             "live_pass":live_pass,"live_total":live_total,"native_pass":native_pass,"native_total":native_total,
+            "compact_live_total":compact_live_total,"compact_format_pass":compact_format_pass,
+            "provider_usage":{"compact_path":usage_totals(&records,"live_usage"),"native_path":usage_totals(&records,"baseline_usage")},
+            "per_case":per_case,
             "failures":failures,"scope":"Local development report; organizer private scorer is authoritative."
         }))?
     );
     Ok(())
+}
+
+// Provider counters are separate from serialized-body tokenizer estimates. Do not
+// present missing usage as zero or partial usage as a complete comparison.
+fn usage_totals(records: &BTreeMap<String, Value>, field: &str) -> Option<Value> {
+    let mut requests = 0u64;
+    let mut prompt = 0u64;
+    let mut completion = 0u64;
+    for record in records.values().filter(|r| r.get("live_calls").is_some()) {
+        let usage = record.get(field)?;
+        prompt = prompt.checked_add(usage.get("prompt_tokens")?.as_u64()?)?;
+        completion = completion.checked_add(usage.get("completion_tokens")?.as_u64()?)?;
+        requests += 1;
+    }
+    (requests > 0).then(|| json!({"requests":requests,"prompt_tokens":prompt,"completion_tokens":completion,"total_tokens":prompt+completion}))
 }
 
 fn calls_match(actual: &Value, case: &Value) -> bool {
@@ -167,4 +198,25 @@ fn calls_match(actual: &Value, case: &Value) -> bool {
             }
         })
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn provider_usage_is_not_fabricated_for_offline_or_partial_reports() {
+        let mut records = BTreeMap::new();
+        assert_eq!(usage_totals(&records, "live_usage"), None);
+        records.insert("a".into(), json!({"live_calls":{"calls":[]},"live_usage":{"prompt_tokens":10,"completion_tokens":3}}));
+        assert_eq!(
+            usage_totals(&records, "live_usage").unwrap()["total_tokens"],
+            13
+        );
+        records.insert(
+            "b".into(),
+            json!({"live_calls":{"calls":[]},"live_usage":null}),
+        );
+        assert_eq!(usage_totals(&records, "live_usage"), None);
+    }
 }

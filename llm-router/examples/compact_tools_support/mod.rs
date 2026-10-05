@@ -87,9 +87,10 @@ impl LiveConfig {
         let reasoning_effort = std::env::var("LIVE_REASONING_EFFORT")
             .ok()
             .filter(|value| !value.is_empty());
-        if reasoning_effort.as_deref().is_some_and(|value| {
-            !matches!(value, "none" | "low" | "medium" | "high" | "xhigh")
-        }) {
+        if reasoning_effort
+            .as_deref()
+            .is_some_and(|value| !matches!(value, "none" | "low" | "medium" | "high" | "xhigh"))
+        {
             return Err("LIVE_REASONING_EFFORT must be none, low, medium, high or xhigh".into());
         }
         let url = reqwest::Url::parse(&base)?;
@@ -212,9 +213,23 @@ impl LiveConfig {
 }
 
 fn native_calls(body: &Value) -> Result<Value, Error> {
+    if body
+        .get("choices")
+        .and_then(Value::as_array)
+        .is_none_or(|v| v.len() != 1)
+    {
+        return Ok(json!({"error":"malformed_output"}));
+    }
     let Some(message) = body.pointer("/choices/0/message") else {
         return Ok(json!({"error":"malformed_output"}));
     };
+    if message.get("role").and_then(Value::as_str) != Some("assistant")
+        || message
+            .get("tool_calls")
+            .is_some_and(|v| !v.is_null() && !v.is_array())
+    {
+        return Ok(json!({"error":"malformed_output"}));
+    }
     if !matches!(
         body.pointer("/choices/0/finish_reason")
             .and_then(Value::as_str),
@@ -225,17 +240,86 @@ fn native_calls(body: &Value) -> Result<Value, Error> {
     let mut calls = Vec::new();
     if let Some(native) = message.get("tool_calls").and_then(Value::as_array) {
         for call in native {
-            let name = call
+            let Some(name) = call
                 .pointer("/function/name")
                 .and_then(Value::as_str)
-                .ok_or("native response missing tool name")?;
-            let arguments = call
-                .pointer("/function/arguments")
-                .and_then(Value::as_str)
-                .ok_or("native response missing arguments")?;
-            let arguments: Value = serde_json::from_str(arguments)?;
+                .filter(|name| !name.is_empty())
+            else {
+                return Ok(json!({"error":"malformed_output"}));
+            };
+            let Some(arguments) = call.pointer("/function/arguments").and_then(Value::as_str)
+            else {
+                return Ok(json!({"error":"malformed_output"}));
+            };
+            let Ok(arguments) = serde_json::from_str::<Value>(arguments) else {
+                return Ok(json!({"error":"invalid_arguments"}));
+            };
+            if !arguments.is_object() {
+                return Ok(json!({"error":"invalid_arguments"}));
+            }
             calls.push(json!({"name":name,"arguments":arguments}));
         }
     }
     Ok(json!({"calls":calls}))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn malformed_native_output_is_not_a_successful_no_call() {
+        for body in [
+            json!({"choices":[]}),
+            json!({"choices":[{"finish_reason":"stop","message":{"role":"assistant","tool_calls":"bad"}}]}),
+            json!({"choices":[{"finish_reason":"stop","message":{"role":"user"}}]}),
+            json!({"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","tool_calls":[{"function":{"name":"f","arguments":"{"}}]}}]}),
+        ] {
+            assert!(native_calls(&body).unwrap().get("error").is_some());
+        }
+    }
+
+    #[tokio::test]
+    async fn live_transport_decodes_actual_http_output_and_records_native_comparison() {
+        let mut server = mockito::Server::new_async().await;
+        let compact = server.mock("POST", "/v1/chat/completions")
+            .match_header("authorization", "Bearer local-test-key")
+            .match_body(mockito::Matcher::PartialJson(json!({"model":"test-model","temperature":0.0,"messages":[{"role":"user","content":"Call echo"}]})))
+            .with_status(200).with_header("content-type", "application/json")
+            .with_body(json!({"choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"<<call echo {\"text\":\"hello\"}>>"}}],"usage":{"prompt_tokens":12,"completion_tokens":8}}).to_string())
+            .create_async().await;
+        let baseline = server.mock("POST", "/v1/chat/completions")
+            .match_body(mockito::Matcher::PartialJson(json!({"messages":[],"tools":[]})))
+            .with_status(200).with_header("content-type", "application/json")
+            .with_body(json!({"choices":[{"finish_reason":"tool_calls","message":{"role":"assistant","tool_calls":[{"type":"function","function":{"name":"echo","arguments":"{\"text\":\"hello\"}"}}]}}]}).to_string())
+            .create_async().await;
+        let live = LiveConfig {
+            client: reqwest::Client::new(),
+            endpoint: format!("{}/v1/chat/completions", server.url()),
+            model: "test-model".into(),
+            temperature: 0.0,
+            reasoning_effort: None,
+            key: Some("local-test-key".into()),
+            baseline: true,
+        };
+        let tools = vec![ToolDef {
+            name: "echo".into(),
+            description: None,
+            parameters: Some(
+                json!({"type":"object","properties":{"text":{"type":"string"}},"required":["text"]}),
+            ),
+        }];
+        let mut record = json!({"compacted":true,"compact_request":{"messages":[{"role":"user","content":"Call echo"}]}});
+        live.add_outputs(&mut record, &json!({"messages":[],"tools":[]}), &tools)
+            .await
+            .unwrap();
+        assert_eq!(record["live_calls"], record["baseline_calls"]);
+        assert_eq!(
+            record["live_calls"]["calls"][0]["arguments"]["text"],
+            "hello"
+        );
+        assert_eq!(record["live_usage"]["prompt_tokens"], 12);
+        compact.assert_async().await;
+        baseline.assert_async().await;
+    }
 }

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nasiko · Compact tools lab</title>
+<style>
+:root{color-scheme:dark;--bg:#09111b;--panel:#101d2c;--border:#26394a;--text:#ebf4fa;--muted:#a8bbca;--accent:#8ee8cc}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px system-ui,sans-serif}main{max-width:1450px;margin:auto;padding:28px 36px}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:26px}.brand{font-weight:750;letter-spacing:3px}.tag{font-size:13px;border:1px solid var(--border);border-radius:30px;padding:9px 14px;color:var(--accent)}h1{font-size:40px;letter-spacing:-1.5px;margin:6px 0 10px}p{color:var(--muted);line-height:1.5;margin:0 0 18px}.eyebrow{font-size:12px;letter-spacing:2px;color:var(--accent)}.flow{display:flex;gap:12px;align-items:center;color:var(--muted);font-size:14px;margin-bottom:22px}.flow span{padding:9px 13px;background:var(--panel);border-radius:7px}.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}.metric{border:1px solid var(--border);background:var(--panel);border-radius:12px;padding:17px}.metric small{display:block;color:var(--muted);margin-bottom:5px}.metric strong{font-size:29px;font-weight:650}.good{color:var(--accent)}.bad{color:#ffb48e}.toolbar{display:flex;gap:9px;flex-wrap:wrap;margin:20px 0}button{border:1px solid #365264;border-radius:7px;padding:10px 15px;background:#162a3a;color:var(--text);font:inherit;cursor:pointer}button:hover,button:focus-visible{outline:2px solid var(--accent)}button.primary{background:var(--accent);color:#09251c;border:0;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.panel{min-width:0;padding:18px;background:var(--panel);border:1px solid var(--border);border-radius:12px}label,h2{display:block;font-size:14px;font-weight:650;margin:0 0 10px}textarea,pre{width:100%;border:1px solid var(--border);background:#0b1521;color:#d3e9f4;border-radius:7px;padding:12px;font:13px/1.5 Consolas,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}textarea{resize:vertical;height:184px}#output{height:83px;margin-bottom:10px}pre{height:218px;overflow:auto}details{margin-top:12px}summary{cursor:pointer;font-size:13px;color:var(--muted);margin-bottom:10px}#status{margin:12px 0;color:var(--accent);min-height:24px;font-weight:600}footer{margin-top:20px;font-size:13px;color:var(--muted)}#caption{position:fixed;bottom:18px;left:36px;right:36px;max-width:1378px;margin:auto;padding:15px 20px;background:#14312f;border:1px solid #477e6e;border-radius:10px;font-size:19px;display:none}body.recording #caption{display:block}@media(max-width:800px){.grid{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}main{padding:18px}h1{font-size:30px}}
+</style></head><body><main>
+<header><div class="brand">NASIKO <span style="font-weight:400;color:var(--muted)">/ COMPACT TOOLS</span></div><div class="tag">TRACK 1 · RUST RUNTIME</div></header>
+<div class="eyebrow">LESS SCHEMA OVERHEAD. VALIDATED TOOL CALLS.</div>
+<h1>See what the router changes.</h1>
+<p>Send a standard tool request. Inspect the compact payload. Validate a sample model response against the original schema.</p>
+<div class="flow"><span>Standard request</span>→<span>Compact definitions</span>→<span>Validate output</span>→<span>Standard tool calls</span></div>
+<div class="metrics"><div class="metric"><small>Native request tokens</small><strong id="native">—</strong></div><div class="metric"><small>Compact request tokens</small><strong id="compact">—</strong></div><div class="metric"><small>Full-request reduction</small><strong id="saving" class="good">—</strong></div><div class="metric"><small>Original schema reconstructed</small><strong id="schema">—</strong></div></div>
+<div class="toolbar"><button class="primary" id="run">Run transform + validation</button><button id="valid">Valid call</button><button id="invalid">Invalid enum</button><button id="atomic">Valid + unknown call</button><button id="bypass">Unsupported schema</button></div>
+<div id="status" role="status" aria-live="polite">Ready · all operations run locally in Rust.</div>
+<div class="grid"><section class="panel"><h2>1. Compact definitions and instructions</h2><pre id="transformed">Run the transform to inspect the actual payload.</pre><details><summary>Edit the original OpenAI-shaped request</summary><label for="request">Native request JSON</label><textarea id="request" spellcheck="false"></textarea></details></section>
+<section class="panel"><label for="output">2. Sample model output (editable, no live model call)</label><textarea id="output" spellcheck="false"></textarea><h2>3. Validated client-facing tool calls</h2><pre id="restored" style="height:175px">The full response must validate before any call is released.</pre></section></div>
+<footer>Offline runtime demonstration · o200k_base tokenizer · production codec and router seam · experimental feature is off by default. This view does not measure billed savings.</footer>
+</main><div id="caption"></div><script>
+const element = id => document.getElementById(id);
+let sample;
+
+async function run() {
+  try {
+    const request = JSON.parse(element('request').value);
+    const response = await fetch('/api/inspect', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({request, output: element('output').value})
+    });
+    if (!response.ok) throw Error('HTTP ' + response.status);
+    const result = await response.json();
+    if (result.error) throw Error(result.error);
+    window.lastResult = result;
+    element('native').textContent = result.baseline_tokens;
+    element('compact').textContent = result.compact_tokens;
+    element('saving').textContent = ((1 - result.compact_tokens / result.baseline_tokens) * 100).toFixed(1) + '%';
+    element('schema').textContent = result.compacted ? (result.schema_preserved ? 'Exact match' : 'Mismatch') : 'Native';
+    element('schema').className = 'good';
+    element('transformed').textContent = result.compacted
+      ? result.request.messages.find(message => message.role === 'system').content
+      : JSON.stringify(result.request, null, 2);
+    const calls = result.restored?.response?.choices[0]?.message?.tool_calls;
+    element('restored').textContent = JSON.stringify(calls || result.restored || {bypass: result.reason, note: result.note}, null, 2);
+    const error = result.restored?.error;
+    element('status').style.color = error ? '#ffb48e' : '#8ee8cc';
+    element('status').textContent = !result.compacted
+      ? 'BYPASSED · ' + result.reason + ' · original request retained'
+      : error ? 'REJECTED · ' + error + ' · no calls released'
+      : 'VALIDATED · standard tool call restored';
+  } catch (error) {
+    element('status').textContent = 'Error: ' + error.message;
+  }
+}
+
+function reset() {
+  element('request').value = JSON.stringify(sample.request, null, 2);
+  element('output').value = sample.output;
+}
+
+element('run').onclick = run;
+element('valid').onclick = () => { reset(); run(); };
+element('invalid').onclick = () => {
+  reset();
+  element('output').value = sample.output.replace('"title":', '"visibility":"secret","title":');
+  run();
+};
+element('atomic').onclick = () => {
+  reset();
+  element('output').value = sample.output + '\n<<call unknown_tool {}>>';
+  run();
+};
+element('bypass').onclick = () => {
+  reset();
+  const request = structuredClone(sample.request);
+  request.tools[0].function.parameters.properties.title = {oneOf: [{type:'string'}, {type:'integer'}]};
+  element('request').value = JSON.stringify(request, null, 2);
+  run();
+};
+fetch('/api/sample').then(response => response.json()).then(result => {
+  sample = result;
+  reset();
+  window.demoReady = true;
+}).catch(error => { element('status').textContent = 'Startup error: ' + error.message; });
+</script></body></html>

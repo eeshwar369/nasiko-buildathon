@@ -1,0 +1,56 @@
+{
+  "baseline_tokens": 818,
+  "bypassed": 1,
+  "case_count": 3,
+  "compact_format_pass": 2,
+  "compact_live_total": 2,
+  "compact_tokens": 752,
+  "decoder_pass": 5,
+  "decoder_total": 5,
+  "failures": [
+    "ct-001: live",
+    "ct-002: live"
+  ],
+  "live_pass": 1,
+  "live_total": 3,
+  "native_pass": 3,
+  "native_total": 3,
+  "per_case": [
+    {
+      "baseline_tokens": 307,
+      "compact_tokens": 274,
+      "compacted": true,
+      "id": "ct-001"
+    },
+    {
+      "baseline_tokens": 316,
+      "compact_tokens": 283,
+      "compacted": true,
+      "id": "ct-002"
+    },
+    {
+      "baseline_tokens": 195,
+      "compact_tokens": 195,
+      "compacted": false,
+      "id": "ct-003"
+    }
+  ],
+  "provider_usage": {
+    "compact_path": {
+      "completion_tokens": 149,
+      "prompt_tokens": 564,
+      "requests": 3,
+      "total_tokens": 713
+    },
+    "native_path": {
+      "completion_tokens": 199,
+      "prompt_tokens": 484,
+      "requests": 3,
+      "total_tokens": 683
+    }
+  },
+  "roundtrip_pass": 3,
+  "scope": "Local development report; organizer private scorer is authoritative.",
+  "token_reduction": 0.0806845965770171,
+  "tokenizer": "tiktoken-rs=0.7.0/o200k_base"
+}

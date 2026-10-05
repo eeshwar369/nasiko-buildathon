@@ -35,7 +35,7 @@ impl CompactTools {
 }
 
 /// Shared by the evaluation and router so the scored prompt is the deployed prompt.
-pub const CALL_INSTRUCTIONS: &str = "Tools (? optional): <<call NAME {JSON arguments}>>";
+pub const CALL_INSTRUCTIONS: &str = "Use these tools when applicable. Emit <<call NAME {JSON arguments}>>: keep the literal word call, replace NAME with the tool name. Emit one marker per call in requested order. ? fields are optional: omit unspecified values, never ask for them. Ask only for missing required arguments; otherwise answer normally.";
 
 /// Plain response text and validated calls, released together only on successful completion.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

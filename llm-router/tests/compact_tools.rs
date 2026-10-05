@@ -120,3 +120,15 @@ fn tool_history_and_unsupported_schemas_remain_native() {
     );
     assert_eq!(serde_json::to_vec(&req).unwrap(), before);
 }
+
+#[test]
+fn reasoning_budget_does_not_disable_compaction_or_change_provider_options() {
+    let mut req = request();
+    req.extra.insert("reasoning_effort".into(), json!("none"));
+    req.extra
+        .insert("max_completion_tokens".into(), json!(1024));
+    prepare_request(&mut req).unwrap();
+    assert!(req.tools.is_none());
+    assert_eq!(req.extra["reasoning_effort"], "none");
+    assert_eq!(req.extra["max_completion_tokens"], 1024);
+}

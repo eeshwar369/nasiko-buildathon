@@ -2,6 +2,31 @@
 
 This guide explains where compact tool schemas run in Nasiko, how to enable them for local development, and how to exercise the implementation.
 
+## Run the compact-tools demonstration
+
+From the repository root:
+
+```sh
+cargo run --release -p nasiko-llm-router --example compact_tools_demo
+```
+
+Open `http://127.0.0.1:8765`. This local example calls the same
+`prepare_request` and `Prepared::restore` functions as the router. Edit a standard
+request, inspect its compact payload and full-request token counts, and validate
+sample model output. The buttons demonstrate a valid call, an enum violation,
+atomic rejection of a valid call followed by an unknown tool, and a native bypass
+for an unsupported schema. Schema reconstruction is checked from the compact
+text itself.
+
+This is an offline runtime demonstration: no provider calls, tool execution,
+database, or full Nasiko platform startup are required. It does not demonstrate
+authentication or hosted-model quality. `DEMO_BIND` optionally changes the bind
+address; the default is loopback. Hosted inference evidence is generated separately
+by `compact_tools_eval` with `LIVE_BASELINE=1`.
+
+[Watch the recorded run](assets/compact-tools-demo.mp4) and inspect the
+[live/offline evidence](compact-tools-evidence/README.md).
+
 ## Request path
 
 The application continues to send an ordinary OpenAI Chat Completions request with JSON Schema tool definitions. Compaction happens inside Nasiko after authentication and model/provider resolution; callers do not need to learn or produce the compact syntax.
